@@ -1,6 +1,34 @@
-*.onnx
-/.venv
-/__pycache__
-/.vscode
-/mian/__pycache__
-*.pyc
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+*.spec.bak
+
+# PyInstaller
+build/temp/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Logs & temp
+run.log
+*.log
+.pytest_cache/
+
+# Model files (too large for git)
+model/*.onnx
+
+# Backups (user-generated)
+backups/
+
+# Reports (user-generated)
+eagle_tagger_report.txt
+图像标注处理报告.txt
+processing_report.csv

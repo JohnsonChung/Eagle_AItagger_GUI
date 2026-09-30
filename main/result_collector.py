@@ -68,6 +68,9 @@ class ResultCollector:
         success_rate = (
             (self.success_count / total_images * 100) if total_images > 0 else 0
         )
+        images_per_second = (
+            total_images / processing_time if processing_time > 0 else 0
+        )
         return {
             "total_images": total_images,
             "success_count": self.success_count,
@@ -76,9 +79,15 @@ class ResultCollector:
             "total_tags_generated": self.total_tags,
             "avg_tags_per_image": avg_tags_per_image,
             "total_processing_time": processing_time,
-            "images_per_second": (
-                total_images / processing_time if processing_time > 0 else 0
-            ),
+            "images_per_second": images_per_second,
+            # GUI 相容欄位別名
+            "total": total_images,
+            "success": self.success_count,
+            "fail": self.failure_count,
+            "generated_tags": self.total_tags,
+            "avg_tags": avg_tags_per_image,
+            "total_time": f"{processing_time:.1f}s",
+            "speed": images_per_second,
         }
 
     def get_failed_images(self) -> List[Dict]:
