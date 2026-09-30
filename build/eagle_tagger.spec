@@ -108,3 +108,29 @@ coll = COLLECT(
     upx_exclude=[],
     name='EagleTagger',
 )
+
+# --- 後處理：複製 config.ini 和建立 model/ 目錄 ---
+import shutil
+
+dist_dir = os.path.join(SPECPATH, '..', 'dist', 'EagleTagger')
+
+# 複製 config.ini 到 exe 旁邊（讓使用者可以編輯）
+config_src = os.path.join(str(ROOT), 'config.ini')
+if os.path.exists(config_src):
+    shutil.copy2(config_src, dist_dir)
+
+# 建立 model/ 目錄和說明檔
+model_dir = os.path.join(dist_dir, 'model')
+os.makedirs(model_dir, exist_ok=True)
+readme = os.path.join(model_dir, '請將模型放到這裡.txt')
+if not os.path.exists(readme):
+    with open(readme, 'w', encoding='utf-8') as f:
+        f.write('請將 .onnx 模型檔案放到此目錄\n')
+        f.write('預設使用: eva02.onnx\n')
+        f.write('可在 config.ini 中修改 model_path 設定\n')
+
+# 複製 csv/ 標籤字典到 exe 旁邊（如果不在 _internal 中）
+csv_dst = os.path.join(dist_dir, 'csv')
+csv_src = os.path.join(str(ROOT), 'csv')
+if not os.path.exists(csv_dst) and os.path.exists(csv_src):
+    shutil.copytree(csv_src, csv_dst)
