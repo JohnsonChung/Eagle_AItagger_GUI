@@ -98,7 +98,7 @@ class EnvCheckerWindow(ctk.CTkToplevel):
             CUDACheck(),
             CUDNNCheck(),
             DepsCheck(),
-            ModelCheck(config_path=self.config_path)
+            self._create_model_check(),
         ]
         
         # 在背景執行緒中執行
@@ -203,6 +203,28 @@ class EnvCheckerWindow(ctk.CTkToplevel):
             link_label.grid(row=2, column=0, sticky="w", pady=(2, 0))
             link_label.bind("<Button-1>", lambda e, url=result.fix_url: webbrowser.open(url))
             
+
+    def _create_model_check(self) -> 'ModelCheck':
+        """從主視窗的設定面板取得即時模型路徑，傳入 ModelCheck"""
+        model_path = None
+        tags_path = None
+
+        # 嘗試從父視窗（EagleTaggerApp）的 config frame 讀取
+        try:
+            parent = self.master
+            if hasattr(parent, 'frames') and 'config' in parent.frames:
+                config_frame = parent.frames['config']
+                model_path = config_frame.model_path_var.get() or None
+                tags_path = config_frame.tags_path_var.get() or None
+        except Exception:
+            pass
+
+        return ModelCheck(
+            config_path=self.config_path,
+            model_path=model_path,
+            tags_path=tags_path,
+        )
+
     def on_start_main(self):
         """啟動主程式事件處理"""
         # 可以發出信號或直接關閉視窗，讓主程式接手
