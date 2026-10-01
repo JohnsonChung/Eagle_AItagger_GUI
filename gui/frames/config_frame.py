@@ -1,5 +1,6 @@
 import customtkinter as ctk
 import configparser
+import threading
 from pathlib import Path
 from tkinter import filedialog
 from main.unified_config import UnifiedConfig, ModelConfig, TagConfig, ProcessConfig, ReportConfig
@@ -28,70 +29,80 @@ class ConfigFrame(ctk.CTkScrollableFrame):
         self.tags_path_entry.grid(row=2, column=1, padx=5, pady=5, sticky="ew")
         self.tags_path_btn = ctk.CTkButton(self, text="瀏覽", width=60, command=self._browse_tags)
         self.tags_path_btn.grid(row=2, column=2, padx=10, pady=5)
+
+        # 測試模型按鈕 + 結果
+        self.test_model_btn = ctk.CTkButton(
+            self, text="🔍 測試模型", width=120,
+            fg_color="#2B7A0B", hover_color="#1E5A08",
+            command=self._on_test_model,
+        )
+        self.test_model_btn.grid(row=3, column=0, padx=10, pady=5, sticky="e")
+        self.test_result_label = ctk.CTkLabel(self, text="", anchor="w")
+        self.test_result_label.grid(row=3, column=1, columnspan=2, padx=5, pady=5, sticky="ew")
         
         # --- 標籤設定 ---
         self.tag_label = ctk.CTkLabel(self, text="標籤設定", font=ctk.CTkFont(size=16, weight="bold"))
-        self.tag_label.grid(row=3, column=0, columnspan=3, padx=10, pady=(20, 5), sticky="w")
+        self.tag_label.grid(row=4, column=0, columnspan=3, padx=10, pady=(20, 5), sticky="w")
         
         # 置信度閾值
-        ctk.CTkLabel(self, text="置信度閾值:").grid(row=4, column=0, padx=10, pady=5, sticky="e")
+        ctk.CTkLabel(self, text="置信度閾值:").grid(row=5, column=0, padx=10, pady=5, sticky="e")
         self.threshold_var = ctk.DoubleVar(value=0.5)
         self.threshold_slider = ctk.CTkSlider(self, from_=0.0, to=1.0, number_of_steps=20, variable=self.threshold_var, command=self._update_threshold_label)
-        self.threshold_slider.grid(row=4, column=1, padx=5, pady=5, sticky="ew")
+        self.threshold_slider.grid(row=5, column=1, padx=5, pady=5, sticky="ew")
         self.threshold_val_label = ctk.CTkLabel(self, text="0.50")
-        self.threshold_val_label.grid(row=4, column=2, padx=10, pady=5)
+        self.threshold_val_label.grid(row=5, column=2, padx=10, pady=5)
         
         # Checkboxes
         self.use_chinese_var = ctk.BooleanVar()
         self.cb_use_chinese = ctk.CTkCheckBox(self, text="使用中文標籤", variable=self.use_chinese_var)
-        self.cb_use_chinese.grid(row=5, column=1, padx=5, pady=5, sticky="w")
+        self.cb_use_chinese.grid(row=6, column=1, padx=5, pady=5, sticky="w")
         
         self.replace_underscore_var = ctk.BooleanVar()
         self.cb_replace_underscore = ctk.CTkCheckBox(self, text="替換底線為空格", variable=self.replace_underscore_var)
-        self.cb_replace_underscore.grid(row=6, column=1, padx=5, pady=5, sticky="w")
+        self.cb_replace_underscore.grid(row=7, column=1, padx=5, pady=5, sticky="w")
         
         self.escape_tags_var = ctk.BooleanVar()
         self.cb_escape_tags = ctk.CTkCheckBox(self, text="轉義特殊字元", variable=self.escape_tags_var)
-        self.cb_escape_tags.grid(row=7, column=1, padx=5, pady=5, sticky="w")
+        self.cb_escape_tags.grid(row=8, column=1, padx=5, pady=5, sticky="w")
         
         self.sort_alpha_var = ctk.BooleanVar()
         self.cb_sort_alpha = ctk.CTkCheckBox(self, text="按字母排序", variable=self.sort_alpha_var)
-        self.cb_sort_alpha.grid(row=8, column=1, padx=5, pady=5, sticky="w")
+        self.cb_sort_alpha.grid(row=9, column=1, padx=5, pady=5, sticky="w")
         
         # 強制追加/排除
-        ctk.CTkLabel(self, text="強制追加標籤:").grid(row=9, column=0, padx=10, pady=5, sticky="e")
+        ctk.CTkLabel(self, text="強制追加標籤:").grid(row=10, column=0, padx=10, pady=5, sticky="e")
         self.add_tags_var = ctk.StringVar()
         self.add_tags_entry = ctk.CTkEntry(self, textvariable=self.add_tags_var, placeholder_text="以逗號分隔")
-        self.add_tags_entry.grid(row=9, column=1, padx=5, pady=5, sticky="ew")
+        self.add_tags_entry.grid(row=10, column=1, padx=5, pady=5, sticky="ew")
         
-        ctk.CTkLabel(self, text="強制排除標籤:").grid(row=10, column=0, padx=10, pady=5, sticky="e")
+        ctk.CTkLabel(self, text="強制排除標籤:").grid(row=11, column=0, padx=10, pady=5, sticky="e")
         self.exclude_tags_var = ctk.StringVar()
         self.exclude_tags_entry = ctk.CTkEntry(self, textvariable=self.exclude_tags_var, placeholder_text="以逗號分隔")
-        self.exclude_tags_entry.grid(row=10, column=1, padx=5, pady=5, sticky="ew")
+        self.exclude_tags_entry.grid(row=11, column=1, padx=5, pady=5, sticky="ew")
         
         # --- 處理設定 ---
         self.process_label = ctk.CTkLabel(self, text="處理設定", font=ctk.CTkFont(size=16, weight="bold"))
-        self.process_label.grid(row=11, column=0, columnspan=3, padx=10, pady=(20, 5), sticky="w")
+        self.process_label.grid(row=12, column=0, columnspan=3, padx=10, pady=(20, 5), sticky="w")
         
         # 寫入模式
-        ctk.CTkLabel(self, text="寫入模式:").grid(row=12, column=0, padx=10, pady=5, sticky="e")
+        ctk.CTkLabel(self, text="寫入模式:").grid(row=13, column=0, padx=10, pady=5, sticky="e")
         self.write_mode_var = ctk.BooleanVar(value=False) # False=覆蓋, True=追加
         self.mode_frame = ctk.CTkFrame(self, fg_color="transparent")
-        self.mode_frame.grid(row=12, column=1, padx=5, pady=5, sticky="w")
+        self.mode_frame.grid(row=13, column=1, padx=5, pady=5, sticky="w")
         ctk.CTkRadioButton(self.mode_frame, text="覆蓋", variable=self.write_mode_var, value=False).pack(side="left", padx=(0,10))
         ctk.CTkRadioButton(self.mode_frame, text="追加", variable=self.write_mode_var, value=True).pack(side="left")
         
         # 工作進程數
-        ctk.CTkLabel(self, text="工作進程數:").grid(row=13, column=0, padx=10, pady=5, sticky="e")
+        ctk.CTkLabel(self, text="工作進程數:").grid(row=14, column=0, padx=10, pady=5, sticky="e")
         self.workers_var = ctk.StringVar(value="2")
         self.workers_menu = ctk.CTkOptionMenu(self, variable=self.workers_var, values=[str(i) for i in range(1, 9)])
-        self.workers_menu.grid(row=13, column=1, padx=5, pady=5, sticky="w")
+        self.workers_menu.grid(row=14, column=1, padx=5, pady=5, sticky="w")
         
         # 批次大小
-        ctk.CTkLabel(self, text="批次大小:").grid(row=14, column=0, padx=10, pady=5, sticky="e")
+        ctk.CTkLabel(self, text="批次大小:").grid(row=15, column=0, padx=10, pady=5, sticky="e")
         self.batch_size_var = ctk.StringVar(value="8")
         self.batch_size_menu = ctk.CTkOptionMenu(self, variable=self.batch_size_var, values=["1","2","4","8","16","32","50"])
-        self.batch_size_menu.grid(row=14, column=1, padx=5, pady=5, sticky="w")
+        self.batch_size_menu.grid(row=15, column=1, padx=5, pady=5, sticky="w")
         
         self._original_config = None
 
@@ -176,3 +187,45 @@ class ConfigFrame(ctk.CTkScrollableFrame):
         
         with open(path, 'w', encoding='utf-8') as f:
             parser.write(f)
+
+    def _on_test_model(self):
+        """測試模型按鈕點擊事件"""
+        model_path = self.model_path_var.get()
+        tags_path = self.tags_path_var.get()
+
+        if not model_path or not tags_path:
+            self.test_result_label.configure(
+                text="⚠️ 請先設定模型路徑和標籤字典",
+                text_color="orange",
+            )
+            return
+
+        self.test_model_btn.configure(state="disabled", text="⏳ 測試中...")
+        self.test_result_label.configure(text="正在載入模型並執行推理...", text_color="gray")
+
+        def _run_test():
+            from gui.model_tester import test_model
+            result = test_model(model_path, tags_path)
+            self.after(0, lambda: self._show_test_result(result))
+
+        threading.Thread(target=_run_test, daemon=True).start()
+
+    def _show_test_result(self, result):
+        """顯示模型測試結果"""
+        self.test_model_btn.configure(state="normal", text="🔍 測試模型")
+
+        if result.success:
+            self.test_result_label.configure(
+                text=(
+                    f"✅ 通過 | {result.provider} | "
+                    f"輸入 {result.input_shape} | "
+                    f"{result.output_count} 標籤 | "
+                    f"推理 {result.inference_time_ms}ms"
+                ),
+                text_color="#2B7A0B",
+            )
+        else:
+            self.test_result_label.configure(
+                text=f"❌ {result.error}",
+                text_color="red",
+            )
