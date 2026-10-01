@@ -65,12 +65,21 @@ def test_model(model_path: str, tags_path: str) -> ModelTestResult:
     # 取得實際 provider
     result.provider = session.get_providers()[0] if session.get_providers() else "unknown"
 
-    # 3. 取得輸入形狀
+    # 3. 取得輸入形狀，偵測 NCHW / NHWC
     try:
         input_info = session.get_inputs()[0]
-        input_shape = input_info.shape  # e.g. [1, 448, 448, 3]
+        input_shape = input_info.shape  # e.g. [1, 448, 448, 3] or [1, 3, 448, 448]
         result.input_shape = str(input_shape)
-        target_size = input_shape[1]  # 448 or 224
+
+        # 判斷通道位置：NCHW → shape[1]==3, NHWC → shape[3]==3
+        if len(input_shape) == 4 and input_shape[1] == 3:
+            # NCHW: [batch, 3, H, W]
+            is_nchw = True
+            target_size = input_shape[2]
+        else:
+            # NHWC: [batch, H, W, 3]
+            is_nchw = False
+            target_size = input_shape[1]
     except Exception as e:
         result.error = f"無法讀取模型輸入格式: {e}"
         return result
@@ -88,8 +97,11 @@ def test_model(model_path: str, tags_path: str) -> ModelTestResult:
     try:
         import numpy as np
 
-        # 建立空白測試圖（白色）
-        dummy = np.ones((1, target_size, target_size, 3), dtype=np.float32)
+        # 建立空白測試圖（白色），依模型格式調整
+        if is_nchw:
+            dummy = np.ones((1, 3, target_size, target_size), dtype=np.float32)
+        else:
+            dummy = np.ones((1, target_size, target_size, 3), dtype=np.float32)
 
         input_name = input_info.name
         output_name = session.get_outputs()[0].name

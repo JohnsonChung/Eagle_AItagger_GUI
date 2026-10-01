@@ -39,8 +39,23 @@ class WaifuDiffusionInterrogator:
 
     def interrogate(self, image: Image.Image) -> Tuple[Dict, Dict]:
         """执行图像分析"""
-        target_size = self.model.get_inputs()[0].shape[1]
+        input_shape = self.model.get_inputs()[0].shape
+
+        # 自動偵測 NCHW / NHWC
+        if len(input_shape) == 4 and input_shape[1] == 3:
+            # NCHW: [batch, 3, H, W]
+            target_size = input_shape[2]
+            is_nchw = True
+        else:
+            # NHWC: [batch, H, W, 3]
+            target_size = input_shape[1]
+            is_nchw = False
+
         processed = ImageUtils.preprocess_image(image, target_size)
+
+        # NCHW 模型需要轉置: [1,H,W,3] → [1,3,H,W]
+        if is_nchw:
+            processed = processed.transpose(0, 3, 1, 2)
 
         # 模型推理
         input_name = self.model.get_inputs()[0].name
