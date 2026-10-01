@@ -146,6 +146,13 @@ class ImageListFrame(ctk.CTkFrame):
         )
         self.btn_clear.pack(side="left", padx=5)
 
+        self.btn_preview = ctk.CTkButton(
+            self.btn_frame, text="🔍 預覽測試",
+            command=self._on_preview,
+            fg_color="#1E6091", hover_color="#14476B",
+        )
+        self.btn_preview.pack(side="right", padx=5)
+
         self.btn_start = ctk.CTkButton(
             self.btn_frame, text="開始處理",
             command=self._on_start,
@@ -459,6 +466,32 @@ class ImageListFrame(ctk.CTkFrame):
         if self._start_callback and self._image_paths:
             self._start_callback()
 
+    def _on_preview(self):
+        """預覽測試：取第一張圖片進行單張推理"""
+        if not self._image_paths:
+            from tkinter import messagebox
+            messagebox.showinfo("預覽測試", "請先匯入或載入圖片")
+            return
+
+        # 取得第一張圖片路徑
+        first = self._image_paths[0]
+        image_path = first.get("image_path", "") if isinstance(first, dict) else str(first)
+
+        if not image_path:
+            return
+
+        # 從主視窗取得目前設定
+        try:
+            app = self.winfo_toplevel()
+            config = app.frames["config"].get_config()
+        except Exception:
+            from tkinter import messagebox
+            messagebox.showerror("預覽測試", "無法讀取目前設定")
+            return
+
+        from gui.preview_window import PreviewWindow
+        PreviewWindow(app, image_path, config)
+
     def set_processing_state(self, is_processing: bool) -> None:
         """處理中鎖定 / 解鎖所有按鈕"""
         state = "disabled" if is_processing else "normal"
@@ -466,5 +499,6 @@ class ImageListFrame(ctk.CTkFrame):
         self.btn_file.configure(state=state)
         self.btn_clear.configure(state=state)
         self.btn_start.configure(state=state)
+        self.btn_preview.configure(state=state)
         self.btn_eagle_import.configure(state=state)
         self.library_menu.configure(state=state)
