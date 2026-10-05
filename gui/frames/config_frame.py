@@ -119,6 +119,26 @@ class ConfigFrame(ctk.CTkScrollableFrame):
         if file:
             self.tags_path_var.set(file)
 
+    @staticmethod
+    def csv_has_chinese(path: str) -> bool:
+        """檢查標籤 CSV 是否含中文欄位 right_tag_cn"""
+        try:
+            with open(path, encoding="utf-8-sig") as f:
+                header = f.readline()
+            return "right_tag_cn" in [c.strip() for c in header.split(",")]
+        except OSError:
+            return False
+
+    def _refresh_chinese_support(self, *_):
+        """依目前標籤字典啟用 / 停用「使用中文標籤」"""
+        if self.csv_has_chinese(self.tags_path_var.get()):
+            self.cb_use_chinese.configure(state="normal", text="使用中文標籤")
+        else:
+            self.use_chinese_var.set(False)
+            self.cb_use_chinese.configure(
+                state="disabled", text="使用中文標籤（此字典無中文欄位）"
+            )
+
     def load_config(self, config: UnifiedConfig) -> None:
         self._original_config = config
         self.model_path_var.set(str(config.model.model_path))
@@ -139,6 +159,12 @@ class ConfigFrame(ctk.CTkScrollableFrame):
         self.workers_var.set(str(config.process.max_workers))
         self.batch_size_var.set(str(config.process.batch_size))
 
+        # 載入後依字典校正中文選項，並在之後路徑變更時自動重新檢查
+        self._refresh_chinese_support()
+        if not getattr(self, "_tags_trace_added", False):
+            self.tags_path_var.trace_add("write", self._refresh_chinese_support)
+            self._tags_trace_added = True
+
     def get_config(self) -> UnifiedConfig:
         config = self._original_config if self._original_config else UnifiedConfig()
         
@@ -146,7 +172,10 @@ class ConfigFrame(ctk.CTkScrollableFrame):
         config.model.tags_path = Path(self.tags_path_var.get())
         
         config.tag.threshold = self.threshold_var.get()
-        config.tag.use_chinese_name = self.use_chinese_var.get()
+        # 字典沒有中文欄位時強制使用英文，避免推理時 KeyError
+        config.tag.use_chinese_name = (
+            self.use_chinese_var.get() and self.csv_has_chinese(self.tags_path_var.get())
+        )
         config.tag.replace_underscore = self.replace_underscore_var.get()
         config.tag.escape_tags = self.escape_tags_var.get()
         config.tag.sort_alphabetically = self.sort_alpha_var.get()
