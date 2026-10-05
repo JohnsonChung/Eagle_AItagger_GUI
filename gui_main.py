@@ -18,6 +18,10 @@ os.chdir(ROOT_DIR)
 if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
+# 發佈版不內附 CUDA DLL，需在載入 onnxruntime 前定位使用者安裝的 CUDA / cuDNN
+from gui.cuda_runtime import register_cuda_dll_dirs
+register_cuda_dll_dirs()
+
 
 def main():
     """啟動 GUI 應用程式"""

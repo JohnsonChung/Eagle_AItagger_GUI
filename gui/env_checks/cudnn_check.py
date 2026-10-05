@@ -1,46 +1,23 @@
-import os
-import glob
-from pathlib import Path
 from .base import BaseCheck, CheckResult
+from gui.cuda_runtime import find_dll, CUDNN_MARKER_DLL, CUDNN_DOWNLOAD_URL
+
 
 class CUDNNCheck(BaseCheck):
-    """檢查 cuDNN 執行環境"""
-    
+    """檢查 cuDNN 9 執行環境（發佈版不內附，需使用者自行安裝）"""
+
     def run(self) -> CheckResult:
-        """檢查 CUDA_PATH 下是否存在 cudnn*.dll"""
-        cuda_path_str = os.environ.get('CUDA_PATH')
-        if not cuda_path_str:
-            default_path = r'C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA'
-            if os.path.exists(default_path):
-                # 找最新的版本
-                versions = os.listdir(default_path)
-                if versions:
-                    cuda_path_str = os.path.join(default_path, versions[-1])
-                    
-        if not cuda_path_str or not os.path.exists(cuda_path_str):
+        """尋找 cudnn64_9.dll（含 cuDNN 官方安裝程式的預設位置）"""
+        dll_dir = find_dll(CUDNN_MARKER_DLL)
+        if dll_dir:
             return CheckResult(
-                name="cuDNN 函式庫",
-                status="fail",
-                message="找不到 CUDA 安裝路徑，無法檢查 cuDNN",
-                fix_url="https://developer.download.nvidia.com/compute/cudnn/redist/cudnn/windows-x86_64/cudnn-windows-x86_64-9.10.1.4_cuda12-archive.zip"
+                name="cuDNN 9 函式庫",
+                status="pass",
+                message=f"已找到 cuDNN 9 ({dll_dir})",
             )
-            
-        cuda_path = Path(cuda_path_str)
-        bin_dir = cuda_path / 'bin'
-        
-        if bin_dir.exists():
-            # 尋找 cudnn*.dll
-            dll_files = list(bin_dir.glob('cudnn*.dll'))
-            if dll_files:
-                return CheckResult(
-                    name="cuDNN 函式庫",
-                    status="pass",
-                    message="已找到 cuDNN 相關檔案"
-                )
-                
+
         return CheckResult(
-            name="cuDNN 函式庫",
+            name="cuDNN 9 函式庫",
             status="fail",
-            message=f"在 {bin_dir} 中找不到 cudnn*.dll",
-            fix_url="https://developer.download.nvidia.com/compute/cudnn/redist/cudnn/windows-x86_64/cudnn-windows-x86_64-9.10.1.4_cuda12-archive.zip"
+            message=f"找不到 {CUDNN_MARKER_DLL}，請安裝 cuDNN 9.x (for CUDA 12)",
+            fix_url=CUDNN_DOWNLOAD_URL,
         )

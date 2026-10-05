@@ -77,6 +77,18 @@ a = Analysis(
     noarchive=False,
 )
 
+# --- 排除 CUDA / cuDNN / TensorRT 執行庫（約 1 GB）---
+# 改由使用者自行安裝 CUDA 12 + cuDNN 9，啟動時由 gui/cuda_runtime.py 定位。
+# 注意：onnxruntime_providers_cuda.dll 屬於 onnxruntime 本體，必須保留。
+_CUDA_DLL_PREFIXES = (
+    'cublas', 'cudart', 'cudnn', 'cufft', 'curand', 'cusolver', 'cusparse',
+    'nvrtc', 'nvjitlink', 'nvinfer', 'nvonnxparser', 'nvblas',
+)
+a.binaries = [
+    b for b in a.binaries
+    if not os.path.basename(b[0]).lower().startswith(_CUDA_DLL_PREFIXES)
+]
+
 pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
 
 exe = EXE(
@@ -133,3 +145,22 @@ csv_dst = os.path.join(dist_dir, 'csv')
 csv_src = os.path.join(str(ROOT), 'csv')
 if not os.path.exists(csv_dst) and os.path.exists(csv_src):
     shutil.copytree(csv_src, csv_dst)
+
+# 安裝說明（CUDA / cuDNN 已不內附）
+with open(os.path.join(dist_dir, '安裝說明.txt'), 'w', encoding='utf-8') as f:
+    f.write(
+        'Eagle AI Tagger — 安裝說明\n'
+        '==========================\n\n'
+        '1. 安裝 NVIDIA 顯示卡驅動（建議最新版）\n'
+        '   https://www.nvidia.com/Download/index.aspx\n\n'
+        '2. 安裝 CUDA Toolkit 12.x（必須是 12 版，13 版不相容）\n'
+        '   https://developer.nvidia.com/cuda-12-9-0-download-archive\n\n'
+        '3. 安裝 cuDNN 9.x for CUDA 12\n'
+        '   https://developer.nvidia.com/cudnn-downloads\n'
+        '   （使用官方安裝程式即可，程式啟動時會自動搜尋安裝位置）\n\n'
+        '4. 下載模型 model.onnx 放到 model/ 資料夾\n'
+        '   https://huggingface.co/SmilingWolf/wd-eva02-large-tagger-v3\n\n'
+        '5. 開啟 Eagle，執行 EagleTagger.exe\n'
+        '   第一次啟動可先按「環境檢查」確認上述項目都通過。\n\n'
+        '未安裝 CUDA / cuDNN 時仍可執行，但會以 CPU 運算，速度非常慢。\n'
+    )
